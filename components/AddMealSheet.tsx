@@ -19,6 +19,7 @@ export default function AddMealSheet({ open, onClose, onLogPreset, onLogCustom }
   const [imageUrl, setImageUrl] = useState<string | undefined>();
   const [uploading, setUploading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [estimating, setEstimating] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   if (!open) return null;
@@ -64,6 +65,30 @@ export default function AddMealSheet({ open, onClose, onLogPreset, onLogCustom }
 
     // Reset file input so the same file can be re-selected
     if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const handleEstimate = async () => {
+    if (!name.trim()) return;
+    setEstimating(true);
+    try {
+      const res = await fetch("/api/estimate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: name.trim() }),
+      });
+      const result = await res.json();
+      if (result.name) {
+        setName(result.name);
+        setCal(String(result.cal || ""));
+        setProtein(String(result.protein || ""));
+        setFat(String(result.fat || ""));
+        setCarbs(String(result.carbs || ""));
+      }
+    } catch {
+      // Estimation failed — user can still fill manually
+    } finally {
+      setEstimating(false);
+    }
   };
 
   const handleCustomSubmit = () => {
@@ -167,13 +192,34 @@ export default function AddMealSheet({ open, onClose, onLogPreset, onLogCustom }
                 </div>
               )}
 
-              <input
-                type="text"
-                placeholder="Meal name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full bg-white/5 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-macro-cal/50 placeholder:text-white/20"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Meal name (e.g. chipotle bowl)"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && name.trim()) handleEstimate(); }}
+                  className="flex-1 bg-white/5 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-macro-cal/50 placeholder:text-white/20"
+                />
+                <button
+                  type="button"
+                  onClick={handleEstimate}
+                  disabled={!name.trim() || estimating}
+                  className="px-3 py-2.5 rounded-lg bg-purple-500/15 border border-purple-500/25 text-purple-400 text-xs font-medium whitespace-nowrap disabled:opacity-30 disabled:cursor-not-allowed hover:bg-purple-500/25 active:bg-purple-500/30 transition-colors flex items-center gap-1.5"
+                >
+                  {estimating ? (
+                    <>
+                      <span className="w-3 h-3 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+                      <span className="hidden sm:inline">Estimating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                      Estimate
+                    </>
+                  )}
+                </button>
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 <input
                   type="number"
@@ -207,7 +253,7 @@ export default function AddMealSheet({ open, onClose, onLogPreset, onLogCustom }
 
               <button
                 onClick={handleCustomSubmit}
-                disabled={!name || !cal || !protein || !fat || !carbs || uploading || analyzing}
+                disabled={!name || !cal || !protein || !fat || !carbs || uploading || analyzing || estimating}
                 className="w-full py-2.5 rounded-xl bg-macro-cal text-black font-semibold text-sm disabled:opacity-30 disabled:cursor-not-allowed transition-opacity"
               >
                 Log meal
