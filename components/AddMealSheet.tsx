@@ -18,30 +18,52 @@ export default function AddMealSheet({ open, onClose, onLogPreset, onLogCustom }
   const [carbs, setCarbs] = useState("");
   const [imageUrl, setImageUrl] = useState<string | undefined>();
   const [uploading, setUploading] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   if (!open) return null;
 
-  const uploadImage = async (file: File): Promise<string | undefined> => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Step 1: Upload to Blob
     setUploading(true);
     try {
       const form = new FormData();
       form.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: form });
-      const data = await res.json();
-      return data.url;
+      const uploadRes = await fetch("/api/upload", { method: "POST", body: form });
+      const uploadData = await uploadRes.json();
+      if (!uploadData.url) return;
+      setImageUrl(uploadData.url);
+      setUploading(false);
+
+      // Step 2: Analyze with Gemini
+      setAnalyzing(true);
+      setShowCustom(true);
+      const analyzeRes = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image_url: uploadData.url }),
+      });
+      const result = await analyzeRes.json();
+
+      if (result.name) {
+        setName(result.name);
+        setCal(String(result.cal || ""));
+        setProtein(String(result.protein || ""));
+        setFat(String(result.fat || ""));
+        setCarbs(String(result.carbs || ""));
+      }
     } catch {
-      return undefined;
+      // Upload or analysis failed silently — user can still fill manually
     } finally {
       setUploading(false);
+      setAnalyzing(false);
     }
-  };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const url = await uploadImage(file);
-    setImageUrl(url);
+    // Reset file input so the same file can be re-selected
+    if (fileRef.current) fileRef.current.value = "";
   };
 
   const handleCustomSubmit = () => {
@@ -73,6 +95,33 @@ export default function AddMealSheet({ open, onClose, onLogPreset, onLogCustom }
         <div className="px-4 pb-8">
           <h3 className="text-lg font-semibold mb-4">Add Meal</h3>
 
+          {/* Photo AI identification button */}
+          <input type="file" accept="image/*" capture="environment" ref={fileRef} onChange={handlePhotoUpload} className="hidden" />
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading || analyzing}
+            className="w-full mb-4 py-3 rounded-xl bg-macro-cal/10 border border-macro-cal/20 text-macro-cal text-sm font-medium hover:bg-macro-cal/15 active:bg-macro-cal/20 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {uploading ? (
+              <>
+                <span className="w-4 h-4 border-2 border-macro-cal/30 border-t-macro-cal rounded-full animate-spin" />
+                Uploading...
+              </>
+            ) : analyzing ? (
+              <>
+                <span className="w-4 h-4 border-2 border-macro-cal/30 border-t-macro-cal rounded-full animate-spin" />
+                Analyzing image...
+              </>
+            ) : (
+              <>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                Snap &amp; identify meal
+              </>
+            )}
+          </button>
+
+          {/* Preset grid */}
           <div className="grid grid-cols-2 gap-2 mb-4">
             {PRESETS.map((p) => (
               <button
@@ -89,6 +138,7 @@ export default function AddMealSheet({ open, onClose, onLogPreset, onLogCustom }
             ))}
           </div>
 
+          {/* Custom meal form */}
           {!showCustom ? (
             <button
               onClick={() => setShowCustom(true)}
@@ -98,6 +148,25 @@ export default function AddMealSheet({ open, onClose, onLogPreset, onLogCustom }
             </button>
           ) : (
             <div className="space-y-3 bg-card border border-card-border rounded-xl p-4">
+              {/* Image preview */}
+              {imageUrl && (
+                <div className="flex items-center gap-3">
+                  <img src={imageUrl} alt="Meal" className="w-14 h-14 rounded-lg object-cover" />
+                  <div className="flex-1">
+                    {analyzing && (
+                      <p className="text-xs text-macro-cal flex items-center gap-1.5">
+                        <span className="w-3 h-3 border-2 border-macro-cal/30 border-t-macro-cal rounded-full animate-spin" />
+                        AI is estimating macros...
+                      </p>
+                    )}
+                    {!analyzing && name && (
+                      <p className="text-xs text-white/40">AI estimated &mdash; adjust if needed</p>
+                    )}
+                  </div>
+                  <button onClick={() => { setImageUrl(undefined); setName(""); setCal(""); setProtein(""); setFat(""); setCarbs(""); }} className="text-xs text-white/30 hover:text-white/50">Clear</button>
+                </div>
+              )}
+
               <input
                 type="text"
                 placeholder="Meal name"
@@ -136,27 +205,9 @@ export default function AddMealSheet({ open, onClose, onLogPreset, onLogCustom }
                 />
               </div>
 
-              {/* Image upload */}
-              <input type="file" accept="image/*" ref={fileRef} onChange={handleFileChange} className="hidden" />
-              {imageUrl ? (
-                <div className="flex items-center gap-2">
-                  <img src={imageUrl} alt="Meal" className="w-12 h-12 rounded-lg object-cover" />
-                  <button onClick={() => setImageUrl(undefined)} className="text-xs text-white/30 hover:text-white/50">Remove</button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => fileRef.current?.click()}
-                  disabled={uploading}
-                  className="w-full py-2 rounded-lg border border-white/10 text-white/40 text-sm hover:border-white/20 hover:text-white/60 transition-colors disabled:opacity-50"
-                >
-                  {uploading ? "Uploading..." : "Add photo"}
-                </button>
-              )}
-
               <button
                 onClick={handleCustomSubmit}
-                disabled={!name || !cal || !protein || !fat || !carbs || uploading}
+                disabled={!name || !cal || !protein || !fat || !carbs || uploading || analyzing}
                 className="w-full py-2.5 rounded-xl bg-macro-cal text-black font-semibold text-sm disabled:opacity-30 disabled:cursor-not-allowed transition-opacity"
               >
                 Log meal
