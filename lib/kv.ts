@@ -1,5 +1,5 @@
 import { Redis } from "@upstash/redis";
-import { Meal, Totals, TARGETS } from "./constants";
+import { Meal, Totals, Targets, DEFAULT_TARGETS } from "./constants";
 
 const kv = new Redis({
   url: process.env.FUEL_KV_REST_API_URL || process.env.KV_REST_API_URL || "",
@@ -41,13 +41,22 @@ export function calcTotals(meals: Meal[]): Totals {
   );
 }
 
-export function calcRemaining(totals: Totals): Totals {
+export function calcRemaining(totals: Totals, targets: Targets): Totals {
   return {
-    cal: Math.max(0, TARGETS.calories - totals.cal),
-    protein: Math.max(0, TARGETS.protein - totals.protein),
-    fat: Math.max(0, TARGETS.fat - totals.fat),
-    carbs: Math.max(0, TARGETS.carbs - totals.carbs),
+    cal: Math.max(0, targets.calories - totals.cal),
+    protein: Math.max(0, targets.protein - totals.protein),
+    fat: Math.max(0, targets.fat - totals.fat),
+    carbs: Math.max(0, targets.carbs - totals.carbs),
   };
+}
+
+export async function getTargets(): Promise<Targets> {
+  const targets = await kv.get<Targets>("user:targets");
+  return targets || DEFAULT_TARGETS;
+}
+
+export async function setTargets(targets: Targets): Promise<void> {
+  await kv.set("user:targets", targets);
 }
 
 export async function setWeight(date: string, weight: number): Promise<void> {
