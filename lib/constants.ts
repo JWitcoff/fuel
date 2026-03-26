@@ -1,8 +1,15 @@
-export const TARGETS = {
-  calories: 1835,
-  protein: 195,
-  fat: 60,
-  carbs: 145,
+export const DEFAULT_TARGETS = {
+  calories: 2000,
+  protein: 150,
+  fat: 65,
+  carbs: 250,
+};
+
+export type Targets = {
+  calories: number;
+  protein: number;
+  fat: number;
+  carbs: number;
 };
 
 export type Preset = {

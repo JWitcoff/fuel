@@ -1,18 +1,19 @@
 "use client";
-import { Totals, TARGETS } from "@/lib/constants";
+import { Totals, Targets } from "@/lib/constants";
 
 type Props = {
   remaining: Totals;
+  targets: Targets;
 };
 
-const macros: { key: keyof Totals; label: string; color: string; target: number }[] = [
-  { key: "cal", label: "Calories", color: "#63cdff", target: TARGETS.calories },
-  { key: "protein", label: "Protein", color: "#4ade80", target: TARGETS.protein },
-  { key: "fat", label: "Fat", color: "#fbbf24", target: TARGETS.fat },
-  { key: "carbs", label: "Carbs", color: "#c084fc", target: TARGETS.carbs },
-];
+export default function RemainingMacros({ remaining, targets }: Props) {
+  const macros: { key: keyof Totals; label: string; color: string; target: number }[] = [
+    { key: "cal", label: "Calories", color: "#63cdff", target: targets.calories },
+    { key: "protein", label: "Protein", color: "#4ade80", target: targets.protein },
+    { key: "fat", label: "Fat", color: "#fbbf24", target: targets.fat },
+    { key: "carbs", label: "Carbs", color: "#c084fc", target: targets.carbs },
+  ];
 
-export default function RemainingMacros({ remaining }: Props) {
   return (
     <div className="bg-card border border-card-border rounded-xl p-4">
       <h2 className="text-sm font-semibold text-white/70 mb-3">Remaining</h2>

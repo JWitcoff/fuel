@@ -1,15 +1,15 @@
 "use client";
-import { TARGETS } from "@/lib/constants";
 
 type DayData = { date: string; protein: number };
 
 type Props = {
   days: DayData[];
+  proteinTarget: number;
 };
 
-export default function ProteinHeatmap({ days }: Props) {
+export default function ProteinHeatmap({ days, proteinTarget }: Props) {
   const getColor = (protein: number) => {
-    const pct = protein / TARGETS.protein;
+    const pct = protein / proteinTarget;
     if (pct >= 0.85) return "bg-macro-protein";
     if (pct >= 0.6) return "bg-yellow-500";
     if (protein === 0) return "bg-white/5";
