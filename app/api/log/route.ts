@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
       fat: preset.fat,
       carbs: preset.carbs,
       time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
+      ...(body.image_url && { image_url: body.image_url }),
     };
   } else {
     if (!body.name || body.cal == null || body.protein == null || body.fat == null || body.carbs == null) {
@@ -40,6 +41,7 @@ export async function POST(req: NextRequest) {
       fat: Math.round(body.fat),
       carbs: Math.round(body.carbs),
       time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
+      ...(body.image_url && { image_url: body.image_url }),
     };
   }
 

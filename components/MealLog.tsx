@@ -27,7 +27,11 @@ export default function MealLog({ meals, onDelete, onAddClick }: Props) {
             key={meal.id}
             className="flex items-center gap-3 bg-card border border-card-border rounded-xl px-3 py-3"
           >
-            <span className="text-xl">{meal.emoji}</span>
+            {meal.image_url ? (
+              <img src={meal.image_url} alt={meal.name} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+            ) : (
+              <span className="text-xl">{meal.emoji}</span>
+            )}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{meal.name}</p>
               <p className="font-mono text-[11px] text-white/40">

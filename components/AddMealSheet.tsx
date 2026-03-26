@@ -1,12 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { PRESETS } from "@/lib/constants";
 
 type Props = {
   open: boolean;
   onClose: () => void;
-  onLogPreset: (presetId: string) => void;
-  onLogCustom: (meal: { name: string; cal: number; protein: number; fat: number; carbs: number }) => void;
+  onLogPreset: (presetId: string, imageUrl?: string) => void;
+  onLogCustom: (meal: { name: string; cal: number; protein: number; fat: number; carbs: number; image_url?: string }) => void;
 };
 
 export default function AddMealSheet({ open, onClose, onLogPreset, onLogCustom }: Props) {
@@ -16,8 +16,33 @@ export default function AddMealSheet({ open, onClose, onLogPreset, onLogCustom }
   const [protein, setProtein] = useState("");
   const [fat, setFat] = useState("");
   const [carbs, setCarbs] = useState("");
+  const [imageUrl, setImageUrl] = useState<string | undefined>();
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   if (!open) return null;
+
+  const uploadImage = async (file: File): Promise<string | undefined> => {
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: form });
+      const data = await res.json();
+      return data.url;
+    } catch {
+      return undefined;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = await uploadImage(file);
+    setImageUrl(url);
+  };
 
   const handleCustomSubmit = () => {
     if (!name || !cal || !protein || !fat || !carbs) return;
@@ -27,12 +52,14 @@ export default function AddMealSheet({ open, onClose, onLogPreset, onLogCustom }
       protein: parseInt(protein),
       fat: parseInt(fat),
       carbs: parseInt(carbs),
+      image_url: imageUrl,
     });
     setName("");
     setCal("");
     setProtein("");
     setFat("");
     setCarbs("");
+    setImageUrl(undefined);
     setShowCustom(false);
   };
 
@@ -108,9 +135,28 @@ export default function AddMealSheet({ open, onClose, onLogPreset, onLogCustom }
                   className="bg-white/5 rounded-lg px-3 py-2.5 text-sm font-mono outline-none focus:ring-1 focus:ring-macro-carbs/50 placeholder:text-white/20"
                 />
               </div>
+
+              {/* Image upload */}
+              <input type="file" accept="image/*" ref={fileRef} onChange={handleFileChange} className="hidden" />
+              {imageUrl ? (
+                <div className="flex items-center gap-2">
+                  <img src={imageUrl} alt="Meal" className="w-12 h-12 rounded-lg object-cover" />
+                  <button onClick={() => setImageUrl(undefined)} className="text-xs text-white/30 hover:text-white/50">Remove</button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                  className="w-full py-2 rounded-lg border border-white/10 text-white/40 text-sm hover:border-white/20 hover:text-white/60 transition-colors disabled:opacity-50"
+                >
+                  {uploading ? "Uploading..." : "Add photo"}
+                </button>
+              )}
+
               <button
                 onClick={handleCustomSubmit}
-                disabled={!name || !cal || !protein || !fat || !carbs}
+                disabled={!name || !cal || !protein || !fat || !carbs || uploading}
                 className="w-full py-2.5 rounded-xl bg-macro-cal text-black font-semibold text-sm disabled:opacity-30 disabled:cursor-not-allowed transition-opacity"
               >
                 Log meal

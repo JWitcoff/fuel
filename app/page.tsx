@@ -88,17 +88,17 @@ export default function Dashboard() {
     fetchAllData();
   }, [fetchAllData]);
 
-  const handleLogPreset = async (presetId: string) => {
+  const handleLogPreset = async (presetId: string, imageUrl?: string) => {
     await fetch("/api/log", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ preset_id: presetId, date: selectedDate }),
+      body: JSON.stringify({ preset_id: presetId, date: selectedDate, ...(imageUrl && { image_url: imageUrl }) }),
     });
     setShowAddMeal(false);
     fetchMeals(selectedDate);
   };
 
-  const handleLogCustom = async (meal: { name: string; cal: number; protein: number; fat: number; carbs: number }) => {
+  const handleLogCustom = async (meal: { name: string; cal: number; protein: number; fat: number; carbs: number; image_url?: string }) => {
     await fetch("/api/log", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

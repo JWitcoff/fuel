@@ -40,6 +40,7 @@ export type Meal = {
   fat: number;
   carbs: number;
   time: string;
+  image_url?: string;
 };
 
 export type Totals = {
