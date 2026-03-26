@@ -2,8 +2,8 @@ import { Redis } from "@upstash/redis";
 import { Meal, Totals, TARGETS } from "./constants";
 
 const kv = new Redis({
-  url: process.env.KV_REST_API_URL!,
-  token: process.env.KV_REST_API_TOKEN!,
+  url: process.env.FUEL_KV_REST_API_URL || process.env.KV_REST_API_URL || "",
+  token: process.env.FUEL_KV_REST_API_TOKEN || process.env.KV_REST_API_TOKEN || "",
 });
 
 export function todayKey(): string {
